@@ -25,20 +25,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AsistenteIAChatTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val navController = rememberNavController()
                     val viewModel: ChatViewModel = viewModel()
 
-                    NavHost(
-                        navController = navController,
-                        startDestination = Screen.Chat.route
-                    ) {
+                    NavHost(navController = navController, startDestination = Screen.Chat.route) {
                         composable(Screen.Chat.route) {
                             val uiState by viewModel.uiState.collectAsState()
-
                             ChatScreen(
                                 messages = uiState.messages,
                                 onSendMessage = viewModel::sendMessage,
@@ -48,10 +41,8 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-
                         composable(Screen.History.route) {
                             val historyState by viewModel.history.collectAsState()
-
                             HistoryScreen(
                                 historyMessages = historyState,
                                 onConversationClick = { index ->

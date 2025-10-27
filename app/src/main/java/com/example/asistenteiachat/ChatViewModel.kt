@@ -1,6 +1,7 @@
 package com.example.asistenteiachat
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,9 +11,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class ChatViewModel : ViewModel() {
+class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repository = GeminiRepository()
+    private val storage = ChatStorage(app) // Persistencia
+
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState
 
@@ -20,12 +23,20 @@ class ChatViewModel : ViewModel() {
     val history: StateFlow<List<List<Message>>> = _history
 
     init {
-        val initialMessage = Message(
-            text = _uiState.value.initialGreeting,
-            isUser = false,
-            timestamp = getCurrentTimestamp()
-        )
-        _uiState.update { it.copy(messages = listOf(initialMessage)) }
+        _history.value = storage.loadHistory()
+
+        val restored = storage.loadCurrent()
+        if (!restored.isNullOrEmpty()) {
+            _uiState.update { it.copy(messages = restored) }
+        } else {
+            val initialMessage = Message(
+                text = _uiState.value.initialGreeting,
+                isUser = false,
+                timestamp = getCurrentTimestamp()
+            )
+            _uiState.update { it.copy(messages = listOf(initialMessage)) }
+            storage.saveCurrent(_uiState.value.messages)
+        }
     }
 
     fun sendMessage(prompt: String) {
@@ -36,11 +47,8 @@ class ChatViewModel : ViewModel() {
             isUser = true,
             timestamp = getCurrentTimestamp()
         )
-        _uiState.update {
-            it.copy(
-                messages = it.messages + userMessage,
-            )
-        }
+        _uiState.update { it.copy(messages = it.messages + userMessage) }
+        storage.saveCurrent(_uiState.value.messages)
 
         viewModelScope.launch {
             val responseText = repository.sendMessage(prompt)
@@ -50,33 +58,35 @@ class ChatViewModel : ViewModel() {
                 isUser = false,
                 timestamp = getCurrentTimestamp()
             )
-
-            _uiState.update {
-                it.copy(
-                    messages = it.messages + aiMessage,
-                )
-            }
+            _uiState.update { it.copy(messages = _uiState.value.messages + aiMessage) }
+            storage.saveCurrent(_uiState.value.messages)
         }
     }
 
     fun saveCurrentConversation() {
-        if (_uiState.value.messages.size > 1) {
-            val currentChat = _uiState.value.messages
-            _history.update { it + listOf(currentChat) }
-        }
+        val current = _uiState.value.messages
+        if (current.size <= 1) return
+        if (_history.value.any { areSameConversation(it, current) }) return
+        val newHistory = _history.value + listOf(current)
+        _history.value = newHistory
+        storage.saveHistory(newHistory)
     }
 
     fun resumeConversation(historyIndex: Int) {
-        val conversationToLoad = _history.value.getOrNull(historyIndex)
-
-        conversationToLoad?.let { messages ->
-            _uiState.update {
-                it.copy(messages = messages)
-            }
+        _history.value.getOrNull(historyIndex)?.let { messages ->
+            _uiState.update { it.copy(messages = messages) }
+            storage.saveCurrent(messages)
         }
     }
 
-    private fun getCurrentTimestamp(): String {
-        return SimpleDateFormat("dd MMM HH:mm", Locale.getDefault()).format(Date())
+    private fun areSameConversation(a: List<Message>, b: List<Message>): Boolean {
+        if (a.size != b.size) return false
+
+        return a.indices.all { i ->
+            a[i].isUser == b[i].isUser && a[i].text == b[i].text
+        }
     }
+
+    private fun getCurrentTimestamp(): String =
+        SimpleDateFormat("dd MMM HH:mm", Locale.getDefault()).format(Date())
 }

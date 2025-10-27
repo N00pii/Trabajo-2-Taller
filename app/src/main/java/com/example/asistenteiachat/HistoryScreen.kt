@@ -32,26 +32,38 @@ fun HistoryScreen(
         }
     ) { paddingValues ->
 
-        val historySummaries = historyMessages.mapIndexed { index, messages ->
+        data class Item(val summary: ConversationSummary, val dateText: String)
+
+        val itemsList = historyMessages.mapIndexed { index, messages ->
             val firstUserMessage = messages.firstOrNull { it.isUser }?.text
                 ?: "Conversación sin mensajes de usuario."
 
             val greeting = messages.firstOrNull { !it.isUser }?.text?.take(40) ?: "Asistente IA"
+            val truncatedUserMessage =
+                firstUserMessage.take(40) + if (firstUserMessage.length > 40) "..." else ""
 
-            val truncatedUserMessage = firstUserMessage.take(40) + if (firstUserMessage.length > 40) "..." else ""
+            val dateText = messages.lastOrNull()?.timestamp ?: ""
 
-            ConversationSummary(
-                id = index,
-                assistantGreeting = greeting,
-                userPromptSummary = truncatedUserMessage
+            Item(
+                summary = ConversationSummary(
+                    id = index,
+                    assistantGreeting = greeting,
+                    userPromptSummary = truncatedUserMessage
+                ),
+                dateText = dateText
             )
         }
 
-        LazyColumn(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            items(historySummaries) { summary ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+            items(itemsList) { item ->
                 HistoryItem(
-                    summary = summary,
-                    onClick = { onConversationClick(summary.id) }
+                    summary = item.summary,
+                    dateText = item.dateText,
+                    onClick = { onConversationClick(item.summary.id) }
                 )
             }
         }
@@ -61,6 +73,7 @@ fun HistoryScreen(
 @Composable
 fun HistoryItem(
     summary: ConversationSummary,
+    dateText: String,
     onClick: (Int) -> Unit
 ) {
     Column(
@@ -85,14 +98,14 @@ fun HistoryItem(
             modifier = Modifier.padding(bottom = 4.dp)
         )
 
-        Text(
-            text = "20 May 20:30",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-        )
+        if (dateText.isNotBlank()) {
+            Text(
+                text = dateText,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            )
+        }
 
-        HorizontalDivider(
-            modifier = Modifier.padding(top = 8.dp)
-        )
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }

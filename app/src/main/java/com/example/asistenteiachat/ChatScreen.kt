@@ -12,15 +12,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Send
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,25 +83,21 @@ fun InputBar(onSendMessage: (String) -> Unit) {
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { submitMessage() })
         )
-
         Spacer(modifier = Modifier.width(8.dp))
-
         IconButton(
             onClick = submitMessage,
-            // El 'enabled' es un parámetro estándar y no experimental en IconButton
             enabled = text.isNotBlank(),
             modifier = Modifier
-                .size(48.dp) // Le damos un tamaño similar al FAB
+                .size(48.dp)
                 .background(
                     if (text.isNotBlank()) MaterialTheme.colorScheme.primary else Color.LightGray,
-                    shape = androidx.compose.foundation.shape.CircleShape // Forma circular
+                    shape = androidx.compose.foundation.shape.CircleShape
                 )
         ) {
-            // Usaremos el ícono de envío estándar, ya que el 'AutoMirrored' puede ser parte del conflicto
             Icon(
                 Icons.AutoMirrored.Filled.Send,
                 contentDescription = "Enviar mensaje",
-                tint = MaterialTheme.colorScheme.onPrimary // Color del icono
+                tint = MaterialTheme.colorScheme.onPrimary
             )
         }
     }
@@ -124,9 +119,12 @@ fun ConversationArea(messages: List<Message>, modifier: Modifier = Modifier) {
 
 @Composable
 fun MessageBubble(message: Message) {
-    val alignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
-    val color = if (message.isUser) MaterialTheme.colorScheme.primary else Color(0xFFE0E0E0)
-    val textColor = if (message.isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+
+    val isUser = message.isUser
+    val bubbleColor = if (isUser) Color(0xFF009688) else Color(0xFFE0E0E0)
+    val textColor   = if (isUser) Color.White      else Color(0xFF1F2937)
+
+    val alignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
 
     Box(
         modifier = Modifier
@@ -137,7 +135,7 @@ fun MessageBubble(message: Message) {
         Column(
             modifier = Modifier
                 .clip(RoundedCornerShape(16.dp))
-                .background(color)
+                .background(bubbleColor)
                 .widthIn(max = 300.dp)
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
